@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecture Slides to Audio</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>📚 Lecture Slides to Audio</h1>
+            <p class="subtitle">Convert lecture slides into accessible audio narration for visually impaired students</p>
+        </header>
+
+        <!-- Upload Section -->
+        <section class="upload-section">
+            <div id="dropZone" class="drop-zone">
+                <div class="drop-zone-content">
+                    <span class="icon">📎</span>
+                    <p id="dropLabel">Drop your slide here or <label for="fileInput" class="browse">browse</label></p>
+                    <p class="hint">Supports JPG, PNG, PDF</p>
+                </div>
+                <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.pdf,.webp" hidden>
+            </div>
+            <div class="buttons">
+                <button id="processBtn" class="btn btn-primary" disabled>⚡ Process Slide</button>
+                <button id="demoBtn" class="btn btn-secondary">🎯 Try Demo</button>
+            </div>
+        </section>
+
+        <!-- Progress Steps -->
+        <section id="progress" class="progress-section hidden">
+            <div class="step" id="step1"><span class="dot">○</span> Reading slide...</div>
+            <div class="step" id="step2"><span class="dot">○</span> Extracting text...</div>
+            <div class="step" id="step3"><span class="dot">○</span> Generating AI narration...</div>
+            <div class="step" id="step4"><span class="dot">○</span> Audio ready</div>
+        </section>
+
+        <!-- Error Display -->
+        <section id="error" class="error-section hidden"></section>
+
+        <!-- Results -->
+        <section id="results" class="results-section hidden">
+            <div class="result-panel">
+                <h2>📄 Extracted Text</h2>
+                <pre id="extractedText" class="text-content"></pre>
+            </div>
+
+            <div class="result-panel narration-panel">
+                <h2>🎙️ AI Narration</h2>
+                <p id="narrationText" class="text-content"></p>
+            </div>
+
+            <div class="audio-controls">
+                <div class="audio-buttons">
+                    <button id="playBtn" class="btn btn-play">▶ Play</button>
+                    <button id="pauseBtn" class="btn btn-pause" disabled>⏸ Pause</button>
+                    <button id="stopBtn" class="btn btn-stop" disabled>⏹ Stop</button>
+                </div>
+                <div class="speed-control">
+                    <label for="speedRange">Speed</label>
+                    <input type="range" id="speedRange" min="0.5" max="2" step="0.25" value="1">
+                    <span id="speedValue">1×</span>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            <p>Built with AI · OCR · Text-to-Speech</p>
+        </footer>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>
+
