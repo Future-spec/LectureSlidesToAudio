@@ -5,6 +5,8 @@ LectureSlidesToAudio turns lecture images or PDFs into listening-friendly narrat
 - A local Python terminal app that extracts text, creates narration, and saves WAV audio.
 - A Flask web app that runs locally and deploys to Vercel. The browser uses Web Speech API playback.
 
+For a group presentation, use [VIVA_GUIDE.md](VIVA_GUIDE.md). It divides the explanation into OCR, narration, audio accessibility, and Flask integration.
+
 ## Features
 
 - Offline demo with no file, API key, or Tesseract installation
