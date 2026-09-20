@@ -1,78 +1,189 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lecture Slides to Audio</title>
-    <link rel="stylesheet" href="/style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07111f">
+  <meta name="description" content="Convert lecture slides into clear, accessible audio explanations.">
+  <title>LectureLens | Make every slide audible</title>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
-        <header>
-            <h1>📚 Lecture Slides to Audio</h1>
-            <p class="subtitle">Convert lecture slides into accessible audio narration for visually impaired students</p>
-        </header>
+  <a class="skip-link" href="#studio">Skip to the learning studio</a>
+  <div class="background-orb orb-one"></div>
+  <div class="background-orb orb-two"></div>
 
-        <!-- Upload Section -->
-        <section class="upload-section">
-            <div id="dropZone" class="drop-zone">
-                <div class="drop-zone-content">
-                    <span class="icon">📎</span>
-                    <p id="dropLabel">Drop your slide here or <label for="fileInput" class="browse">browse</label></p>
-                    <p class="hint">Supports JPG, PNG, PDF</p>
-                </div>
-                <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.pdf,.webp" hidden>
-            </div>
-            <div class="buttons">
-                <button id="processBtn" class="btn btn-primary" disabled>⚡ Process Slide</button>
-                <button id="demoBtn" class="btn btn-secondary">🎯 Try Demo</button>
-            </div>
-        </section>
-
-        <!-- Progress Steps -->
-        <section id="progress" class="progress-section hidden">
-            <div class="step" id="step1"><span class="dot">○</span> Reading slide...</div>
-            <div class="step" id="step2"><span class="dot">○</span> Extracting text...</div>
-            <div class="step" id="step3"><span class="dot">○</span> Generating AI narration...</div>
-            <div class="step" id="step4"><span class="dot">○</span> Audio ready</div>
-        </section>
-
-        <!-- Error Display -->
-        <section id="error" class="error-section hidden"></section>
-
-        <!-- Results -->
-        <section id="results" class="results-section hidden">
-            <div class="result-panel">
-                <h2>📄 Extracted Text</h2>
-                <pre id="extractedText" class="text-content"></pre>
-            </div>
-
-            <div class="result-panel narration-panel">
-                <h2>🎙️ AI Narration</h2>
-                <p id="narrationText" class="text-content"></p>
-            </div>
-
-            <div class="audio-controls">
-                <div class="audio-buttons">
-                    <button id="playBtn" class="btn btn-play">▶ Play</button>
-                    <button id="pauseBtn" class="btn btn-pause" disabled>⏸ Pause</button>
-                    <button id="stopBtn" class="btn btn-stop" disabled>⏹ Stop</button>
-                </div>
-                <div class="speed-control">
-                    <label for="speedRange">Speed</label>
-                    <input type="range" id="speedRange" min="0.5" max="2" step="0.25" value="1">
-                    <span id="speedValue">1×</span>
-                </div>
-            </div>
-        </section>
-
-        <footer>
-            <p>Built with AI · OCR · Text-to-Speech</p>
-        </footer>
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="LectureLens home">
+      <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+      <span>Lecture<span>Lens</span></span>
+    </a>
+    <nav aria-label="Main navigation">
+      <a href="#how-it-works">How it works</a>
+      <a href="#studio">Studio</a>
+    </nav>
+    <div class="connection-status" id="connectionStatus" aria-live="polite">
+      <span class="status-dot"></span><span>Checking studio</span>
     </div>
+  </header>
 
-    <script src="/app.js"></script>
+  <main>
+    <section class="hero" aria-labelledby="heroTitle">
+      <div class="eyebrow"><span class="pulse-dot"></span> Accessibility-first learning intelligence</div>
+      <h1 id="heroTitle">Every lecture deserves<br><em>to be heard.</em></h1>
+      <p class="hero-copy">Transform dense slides into a guided audio lesson, a clean transcript, and the key points you need to remember.</p>
+      <div class="hero-actions">
+        <a class="button button-primary" href="#studio">Open the studio <span aria-hidden="true">-></span></a>
+        <button class="text-button" id="heroDemoBtn" type="button">Try the 30-second demo <span class="play-disc" aria-hidden="true">&#9654;</span></button>
+      </div>
+      <div class="trust-row" aria-label="Product benefits">
+        <span><i aria-hidden="true">&#10003;</i> No account needed</span>
+        <span><i aria-hidden="true">&#10003;</i> Private session</span>
+        <span><i aria-hidden="true">&#10003;</i> Works with your device voice</span>
+      </div>
+
+      <div class="hero-visual" aria-hidden="true">
+        <div class="visual-card visual-slide">
+          <div class="visual-card-top"><span></span><span></span><span></span></div>
+          <div class="slide-label">BIOLOGY 101</div>
+          <div class="slide-title">How plants make energy</div>
+          <div class="slide-lines"><i></i><i></i><i></i></div>
+          <div class="leaf-shape"></div>
+        </div>
+        <div class="visual-arrow"><span></span><b>AI guided</b></div>
+        <div class="visual-card visual-audio">
+          <div class="audio-card-head"><div class="mini-mark"></div><span>Now explaining</span></div>
+          <strong>Photosynthesis</strong>
+          <div class="waveform"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="audio-card-footer"><span>0:18</span><div class="audio-progress"><i></i></div><span>1:12</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="studio-section" id="studio" aria-labelledby="studioTitle">
+      <div class="section-heading">
+        <div>
+          <span class="section-kicker">YOUR LEARNING STUDIO</span>
+          <h2 id="studioTitle">Turn a slide into a lesson</h2>
+        </div>
+        <p>Upload a document, paste text, then choose how you want to learn it.</p>
+      </div>
+
+      <div class="studio-layout">
+        <section class="composer card" aria-label="Create a new audio lesson">
+          <div class="card-heading">
+            <div><span class="step-number">01</span><h3>Add your material</h3></div>
+            <span class="format-label">PDF, JPG, PNG, WEBP</span>
+          </div>
+
+          <div class="input-tabs" role="tablist" aria-label="Input type">
+            <button class="input-tab active" id="uploadTab" role="tab" aria-selected="true" aria-controls="uploadPanel" type="button">Upload slide</button>
+            <button class="input-tab" id="pasteTab" role="tab" aria-selected="false" aria-controls="pastePanel" type="button">Paste text</button>
+          </div>
+
+          <div id="uploadPanel" class="input-panel" role="tabpanel" aria-labelledby="uploadTab">
+            <input id="fileInput" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf" hidden>
+            <button id="dropZone" class="drop-zone" type="button" aria-describedby="uploadHint">
+              <span class="upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0 4 4m-4-4L8 8M5 14.5v3A2.5 2.5 0 0 0 7.5 20h9a2.5 2.5 0 0 0 2.5-2.5v-3"/></svg></span>
+              <span class="drop-main" id="dropLabel">Drop your slide here</span>
+              <span class="drop-sub">or click to browse your files</span>
+              <span class="drop-meta" id="uploadHint">Up to 4 MB. PDFs with selectable text work instantly.</span>
+            </button>
+            <div class="file-chip hidden" id="fileChip"><span class="file-icon">PDF</span><span id="fileName">lecture.pdf</span><button id="removeFileBtn" type="button" aria-label="Remove selected file">&#215;</button></div>
+          </div>
+
+          <div id="pastePanel" class="input-panel hidden" role="tabpanel" aria-labelledby="pasteTab">
+            <label class="sr-only" for="sourceText">Paste the text from your slide</label>
+            <textarea id="sourceText" maxlength="24000" placeholder="Paste a heading, bullet points, definitions, formulas, or the text from any lecture slide..."></textarea>
+            <div class="text-area-footer"><span id="characterCount">0 / 24,000</span><button id="clearTextBtn" class="subtle-button" type="button">Clear text</button></div>
+          </div>
+
+          <div class="mode-section">
+            <div class="mode-heading"><span class="step-number">02</span><h3>Choose your listening style</h3></div>
+            <div class="mode-options" role="radiogroup" aria-label="Narration style">
+              <button class="mode-option selected" data-mode="explainer" type="button" role="radio" aria-checked="true"><span class="mode-icon">A</span><span><b>Explain it</b><small>Clear and friendly</small></span></button>
+              <button class="mode-option" data-mode="revision" type="button" role="radio" aria-checked="false"><span class="mode-icon">R</span><span><b>Revision mode</b><small>Fast key takeaways</small></span></button>
+              <button class="mode-option" data-mode="deep" type="button" role="radio" aria-checked="false"><span class="mode-icon">D</span><span><b>Deep dive</b><small>Build the why</small></span></button>
+            </div>
+          </div>
+
+          <div class="composer-actions">
+            <button class="button button-primary generate-button" id="generateBtn" type="button" disabled><span class="button-spark" aria-hidden="true">&#10022;</span> Create audio lesson</button>
+            <button class="button button-quiet" id="demoBtn" type="button">Use live demo</button>
+          </div>
+          <p class="privacy-note"><span aria-hidden="true">&#9678;</span> Your files are processed for this request only. Nothing is saved to our server.</p>
+        </section>
+
+        <aside class="studio-aside" aria-label="What LectureLens creates">
+          <div class="aside-card signal-card">
+            <div class="signal-title"><span class="signal-icon" aria-hidden="true">&#10022;</span><span>Built for understanding<br>not just transcription.</span></div>
+            <p>LectureLens turns visual structure into a listening-first experience.</p>
+            <div class="signal-list">
+              <div><span>01</span><p><b>Reads the structure</b><small>Headings, bullets, equations</small></p></div>
+              <div><span>02</span><p><b>Connects the ideas</b><small>Natural, human-ready flow</small></p></div>
+              <div><span>03</span><p><b>Gives you control</b><small>Voice, speed, replay, notes</small></p></div>
+            </div>
+          </div>
+          <div class="aside-card quote-card">
+            <span class="quote-mark">“</span>
+            <p>A good accessibility tool doesn't make learning smaller. It opens the room.</p>
+            <span class="quote-credit">Designed for every kind of learner</span>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="processing" class="processing hidden" aria-live="polite" aria-label="Creating your lesson">
+      <div class="processing-top"><div><span class="section-kicker">CREATING YOUR LESSON</span><h2 id="processingTitle">Reading your material</h2></div><span class="processing-percent" id="processingPercent">0%</span></div>
+      <div class="processing-track"><i id="processingBar"></i></div>
+      <div class="process-steps">
+        <div class="process-step active" id="processStep1"><span>1</span><p><b>Preparing</b><small>Securing your session</small></p></div>
+        <div class="process-step" id="processStep2"><span>2</span><p><b>Reading</b><small>Finding the ideas</small></p></div>
+        <div class="process-step" id="processStep3"><span>3</span><p><b>Explaining</b><small>Building your lesson</small></p></div>
+        <div class="process-step" id="processStep4"><span>4</span><p><b>Ready</b><small>Voice controls unlocked</small></p></div>
+      </div>
+    </section>
+
+    <section id="errorPanel" class="error-panel hidden" role="alert"><span aria-hidden="true">!</span><div><b>We hit a small snag</b><p id="errorMessage"></p></div><button id="dismissErrorBtn" type="button" aria-label="Dismiss error">&#215;</button></section>
+
+    <section id="lesson" class="lesson-section hidden" aria-labelledby="lessonTitle" tabindex="-1">
+      <div class="lesson-intro">
+        <div><span class="section-kicker">YOUR AUDIO LESSON</span><h2 id="lessonTitle">Your lecture is ready</h2><p id="lessonMeta">Prepared for focused listening.</p></div>
+        <div class="lesson-actions"><button class="icon-button" id="copyBtn" type="button" title="Copy narration"><span aria-hidden="true">&#10697;</span><span>Copy</span></button><button class="icon-button" id="downloadBtn" type="button" title="Download study notes"><span aria-hidden="true">&#8595;</span><span>Notes</span></button><button class="icon-button" id="newLessonBtn" type="button" title="Create a new lesson"><span aria-hidden="true">+</span><span>New</span></button></div>
+      </div>
+
+      <div class="lesson-grid">
+        <section class="player-card" aria-label="Audio lesson player">
+          <div class="player-label"><span class="live-indicator"></span> AUDIO NARRATION <span class="engine-badge" id="engineBadge">AI guided</span></div>
+          <div class="player-heading"><p>Now listening to</p><h3 id="narrationTitle">Your lecture</h3></div>
+          <div class="player-visual"><div class="speaker-rings"><i></i><i></i><i></i></div><div class="player-wave" id="playerWave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+          <div class="timeline"><div class="timeline-track"><i id="timelineProgress"></i></div><div class="timeline-labels"><span id="elapsedTime">0:00</span><span id="totalTime">0:00</span></div></div>
+          <div class="player-controls"><button class="round-control" id="restartBtn" type="button" aria-label="Restart lesson">&#8634;</button><button class="main-play" id="playBtn" type="button"><span id="playIcon" aria-hidden="true">&#9654;</span><span id="playLabel">Play lesson</span></button><button class="round-control" id="stopBtn" type="button" aria-label="Stop lesson">&#9632;</button></div>
+          <div class="voice-controls"><label for="voiceSelect">Voice</label><select id="voiceSelect" aria-label="Narration voice"><option>Loading available voices...</option></select><label for="speedRange">Speed</label><input id="speedRange" type="range" min="0.75" max="1.75" value="1" step="0.05"><output id="speedValue" for="speedRange">1.0x</output></div>
+        </section>
+
+        <section class="content-card" aria-label="Lesson content">
+          <div class="content-tabs" role="tablist" aria-label="Lesson views">
+            <button class="content-tab active" data-view="narration" type="button" role="tab" aria-selected="true">Narration</button>
+            <button class="content-tab" data-view="takeaways" type="button" role="tab" aria-selected="false">Key takeaways <span id="takeawayCount">3</span></button>
+            <button class="content-tab" data-view="transcript" type="button" role="tab" aria-selected="false">Source text</button>
+          </div>
+          <div class="content-view" id="narrationView" role="tabpanel"><div class="listen-tip"><span aria-hidden="true">&#9835;</span><span>Tap any paragraph to start listening from there.</span></div><article id="narrationContent" class="narration-content"></article></div>
+          <div class="content-view hidden" id="takeawaysView" role="tabpanel"><p class="view-description">The ideas to carry forward from this material.</p><ol id="takeawayList" class="takeaway-list"></ol></div>
+          <div class="content-view hidden" id="transcriptView" role="tabpanel"><p class="view-description">This is the extracted or pasted source used to create the lesson.</p><pre id="sourceContent" class="source-content"></pre></div>
+        </section>
+      </div>
+
+      <section class="memory-card" aria-labelledby="memoryTitle"><div><span class="memory-kicker">MEMORY MOMENT</span><h3 id="memoryTitle">Make it stick</h3></div><p id="memoryText">Your strongest learning happens when you can replay the idea in your own words.</p><button id="replayKeyBtn" class="button button-light" type="button">Replay key idea <span aria-hidden="true">&#9654;</span></button></section>
+    </section>
+
+    <section id="history" class="history-section hidden" aria-labelledby="historyTitle"><div class="history-heading"><div><span class="section-kicker">RECENT IN THIS BROWSER</span><h2 id="historyTitle">Continue learning</h2></div><button id="clearHistoryBtn" class="subtle-button" type="button">Clear history</button></div><div id="historyList" class="history-list"></div></section>
+
+    <section id="how-it-works" class="how-section" aria-labelledby="howTitle"><span class="section-kicker">ONE SIMPLE FLOW</span><h2 id="howTitle">Designed for the moment<br>you need it most.</h2><div class="how-grid"><article><span>01</span><h3>Bring the slide</h3><p>Upload a PDF or image, or paste text directly from your lecture.</p></article><article><span>02</span><h3>Pick your pace</h3><p>Choose a clear explanation, a quick revision, or a deeper walkthrough.</p></article><article><span>03</span><h3>Learn your way</h3><p>Listen, pause, replay paragraphs, and keep the notes for later.</p></article></div></section>
+  </main>
+
+  <footer class="site-footer"><a class="brand" href="/"><span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span><span>Lecture<span>Lens</span></span></a><p>Making visual learning audible, one lecture at a time.</p><span>Built for accessible education</span></footer>
+  <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+  <script src="/app.js"></script>
 </body>
 </html>
-
