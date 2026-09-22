@@ -6,6 +6,9 @@
       "excludeFiles": "{.venv/**,output/**,__pycache__/**}"
     }
   },
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api/index" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
