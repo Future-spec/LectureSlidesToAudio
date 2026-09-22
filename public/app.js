@@ -59,8 +59,22 @@ function setStatus(online, label) {
 
 async function requestJson(url, options) {
   const response = await fetch(url, options);
-  const data = await response.json();
-  if (!response.ok || data.error) throw new Error(data.error || "The request could not be completed.");
+  const text = await response.text();
+
+  let data;
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch (error) {
+    if (!response.ok) {
+      throw new Error("The backend is not responding. Start the Flask app with python app.py and open http://localhost:5000");
+    }
+    throw new Error("The server returned an unexpected response. Please check the backend and try again.");
+  }
+
+  if (!response.ok || data.error) {
+    throw new Error(data.error || "The request could not be completed.");
+  }
+
   return data;
 }
 
