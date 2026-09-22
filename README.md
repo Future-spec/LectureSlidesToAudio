@@ -20,7 +20,8 @@ For a group presentation, use [VIVA_GUIDE.md](VIVA_GUIDE.md). It divides the exp
 
 ```text
 LectureSlidesToAudio/
-  api/index.py       Flask app and Vercel entry point
+  app.py             Flask app
+  api/index.py       Vercel entry point
   public/            Browser interface
   main.py            Terminal workflow
   ocr.py             Image/PDF extraction
@@ -44,7 +45,7 @@ pip install -r requirements.txt
 Start the web app:
 
 ```powershell
-python api\index.py
+python app.py
 ```
 
 Open `http://localhost:5000`. Run the demo from the terminal with:
@@ -67,7 +68,7 @@ $env:OPENAI_BASE_URL = "https://api.openai.com/v1"
 
 ## Deploy to Vercel
 
-The Vercel configuration points requests to `api/index.py` and serves the browser files from `public/` through Flask. From this project folder:
+The Vercel configuration points requests to `api/index.py` and serves the browser files from `public/` through Flask. Set the Vercel **Root Directory** to `LectureSlidesToAudio`, then run from this project folder:
 
 ```powershell
 npm install -g vercel
