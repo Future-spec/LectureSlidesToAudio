@@ -148,7 +148,7 @@
 
     <section id="lesson" class="lesson-section hidden" aria-labelledby="lessonTitle" tabindex="-1">
       <div class="lesson-intro">
-        <div><span class="section-kicker">YOUR AUDIO LESSON</span><h2 id="lessonTitle">Your lecture is ready</h2><p id="lessonMeta">Prepared for focused listening.</p></div>
+        <div><span class="section-kicker">YOUR AUDIO LESSON</span><h2 id="lessonTitle">Your lecture is ready</h2><p id="lessonMeta">Prepared for focused listening.</p></div><span id="lessonProgress" class="lesson-progress">0% complete</span>
         <div class="lesson-actions"><button class="icon-button" id="copyBtn" type="button" title="Copy narration"><span aria-hidden="true">&#10697;</span><span>Copy</span></button><button class="icon-button" id="downloadBtn" type="button" title="Download study notes"><span aria-hidden="true">&#8595;</span><span>Notes</span></button><button class="icon-button" id="newLessonBtn" type="button" title="Create a new lesson"><span aria-hidden="true">+</span><span>New</span></button></div>
       </div>
 
@@ -166,10 +166,14 @@
           <div class="content-tabs" role="tablist" aria-label="Lesson views">
             <button class="content-tab active" data-view="narration" type="button" role="tab" aria-selected="true">Narration</button>
             <button class="content-tab" data-view="takeaways" type="button" role="tab" aria-selected="false">Key takeaways <span id="takeawayCount">3</span></button>
+            <button class="content-tab" data-view="studyKit" type="button" role="tab" aria-selected="false">Study kit</button>
+            <button class="content-tab" data-view="deckMap" type="button" role="tab" aria-selected="false">Deck map</button>
             <button class="content-tab" data-view="transcript" type="button" role="tab" aria-selected="false">Source text</button>
           </div>
           <div class="content-view" id="narrationView" role="tabpanel"><div class="listen-tip"><span aria-hidden="true">&#9835;</span><span>Tap any paragraph to start listening from there.</span></div><article id="narrationContent" class="narration-content"></article></div>
           <div class="content-view hidden" id="takeawaysView" role="tabpanel"><p class="view-description">The ideas to carry forward from this material.</p><ol id="takeawayList" class="takeaway-list"></ol></div>
+          <div class="content-view hidden" id="studyKitView" role="tabpanel"><div class="study-summary"><span class="section-kicker">AI STUDY COACH</span><p id="studySummary">Preparing your study companion...</p></div><div class="study-kit-grid"><section><div class="kit-heading"><h4>Quick quiz</h4><span id="quizScore" class="score-badge">0 / 0</span></div><div id="quizList" class="quiz-list"></div></section><section><h4>Flashcards</h4><div id="flashcardList" class="flashcard-list"></div></section></div><div class="next-steps"><h4>Next steps</h4><ol id="nextStepsList"></ol></div><section class="tutor-panel" aria-labelledby="tutorTitle"><div><span class="section-kicker">ASK THE LESSON</span><h4 id="tutorTitle">Stuck on a detail?</h4><p>Ask a question and the tutor will stay grounded in this lesson.</p></div><form id="tutorForm"><label class="sr-only" for="tutorQuestion">Ask a question about this lesson</label><div class="tutor-input"><input id="tutorQuestion" maxlength="800" placeholder="Why does this work?" autocomplete="off"><button class="button button-primary" type="submit">Ask tutor</button></div></form><div id="tutorAnswer" class="tutor-answer hidden" aria-live="polite"></div></section></div>
+          <div class="content-view hidden" id="deckMapView" role="tabpanel"><div class="deck-map-heading"><div><span class="section-kicker">DECK INTELLIGENCE</span><h3 id="deckMapTitle">Your slide map</h3><p id="deckMapMeta">A structured view of the material you uploaded.</p></div><span class="deck-count" id="deckCount">0 slides</span></div><div id="deckMapList" class="deck-map-list"></div></div>
           <div class="content-view hidden" id="transcriptView" role="tabpanel"><p class="view-description">This is the extracted or pasted source used to create the lesson.</p><pre id="sourceContent" class="source-content"></pre></div>
         </section>
       </div>

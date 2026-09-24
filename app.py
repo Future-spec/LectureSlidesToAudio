@@ -22,6 +22,12 @@ from flask import Flask, jsonify, request, send_from_directory
 
 BASE_DIR = Path(__file__).resolve().parent
 PUBLIC_DIR = BASE_DIR / "public"
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(BASE_DIR / ".env")
+except ImportError:
+    pass
 MAX_UPLOAD_BYTES = 4 * 1024 * 1024
 MAX_SOURCE_CHARACTERS = 24_000
 MAX_PDF_PAGES = 18
@@ -75,11 +81,14 @@ def serve_index():
 
 @app.get("/api/health")
 def health() -> Any:
+    configured = bool(os.getenv("OPENAI_API_KEY"))
     return jsonify(
         {
             "status": "ok",
             "service": "LectureSlidesToAudio",
-            "ai_configured": bool(os.getenv("OPENAI_API_KEY")),
+            "ai_configured": configured,
+            "ai_provider": "OpenAI-compatible" if configured else "Offline fallback",
+            "ai_model": os.getenv("OPENAI_MODEL", "gpt-4o-mini") if configured else None,
             "max_upload_mb": MAX_UPLOAD_BYTES // (1024 * 1024),
         }
     )
@@ -112,11 +121,12 @@ def extract() -> Any:
     suffix = Path(upload.filename).suffix.lower()
     try:
         if suffix == ".pdf":
-            text, pages = _extract_pdf(upload.read())
+            text, pages, slides = _extract_pdf(upload.read())
             source = "selectable PDF text"
         elif suffix in ALLOWED_IMAGE_EXTENSIONS:
             text = _extract_image(upload.read(), upload.mimetype or "image/jpeg")
             pages = 1
+            slides = [{"number": 1, "title": _derive_title(text), "text": text}]
             source = "AI slide reading"
         else:
             return _error("That file type is not supported. Use a JPG, PNG, WEBP, or PDF.", 400)
@@ -134,6 +144,7 @@ def extract() -> Any:
     return jsonify(
         {
             "extracted_text": clean_text,
+            "slides": [{**slide, "text": _clean_source_text(str(slide.get("text", "")))} for slide in slides],
             "meta": {"source": source, "pages": pages, "characters": len(clean_text)},
         }
     )
@@ -175,6 +186,54 @@ def narrate() -> Any:
     )
 
 
+@app.post("/api/study-kit")
+def study_kit() -> Any:
+    """Create a compact, structured study companion for the current lesson."""
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return _error("Send the lesson text as JSON to create a study kit.", 400)
+
+    text = _clean_source_text(str(data.get("text", "")))
+    if not text:
+        return _error("Create a lesson before generating a study kit.", 400)
+    if len(text) > MAX_SOURCE_CHARACTERS:
+        return _error("This source is too long for one study kit.", 413)
+
+    try:
+        kit = _create_ai_study_kit(text)
+        engine = "OpenAI study coach"
+    except UserFacingError:
+        kit = _fallback_study_kit(text)
+        engine = "Offline study coach"
+
+    return jsonify({"study_kit": kit, "meta": {"engine": engine}})
+
+
+@app.post("/api/ask")
+def ask_lesson() -> Any:
+    """Answer a learner's question using only the current lesson source."""
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return _error("Send a question and lesson text as JSON.", 400)
+
+    text = _clean_source_text(str(data.get("text", "")))
+    question = _clean_source_text(str(data.get("question", "")))
+    if not text or not question:
+        return _error("Add a lesson and a question before asking the tutor.", 400)
+    if len(text) > MAX_SOURCE_CHARACTERS:
+        return _error("This source is too long for one tutor question.", 413)
+    if len(question) > 800:
+        return _error("Keep your question under 800 characters.", 413)
+
+    try:
+        answer = _create_ai_answer(text, question)
+        engine = "OpenAI lesson tutor"
+    except UserFacingError:
+        answer = _fallback_answer(text, question)
+        engine = "Offline lesson tutor"
+    return jsonify({"answer": answer, "meta": {"engine": engine}})
+
+
 @app.errorhandler(413)
 def request_too_large(_error: Any) -> Any:
     return _error_response("This upload is too large. Please choose a file under 4 MB.", 413)
@@ -201,7 +260,7 @@ def _error_response(message: str, status_code: int) -> Any:
     return jsonify({"error": message}), status_code
 
 
-def _extract_pdf(file_bytes: bytes) -> tuple[str, int]:
+def _extract_pdf(file_bytes: bytes) -> tuple[str, int, list[dict[str, Any]]]:
     if not file_bytes.startswith(b"%PDF"):
         raise UserFacingError("This file does not look like a valid PDF.", 400)
     try:
@@ -218,11 +277,13 @@ def _extract_pdf(file_bytes: bytes) -> tuple[str, int]:
         if document.page_count > MAX_PDF_PAGES:
             raise UserFacingError(f"Please upload up to {MAX_PDF_PAGES} PDF pages at a time.", 413)
         pages = []
+        slides = []
         for number, page in enumerate(document, start=1):
             extracted = page.get_text("text").strip()
             if extracted:
                 pages.append(f"Slide {number}\n{extracted}")
-        return "\n\n".join(pages), document.page_count
+            slides.append({"number": number, "title": _derive_title(extracted), "text": extracted})
+        return "\n\n".join(pages), document.page_count, slides
     finally:
         document.close()
 
@@ -290,6 +351,116 @@ def _create_ai_narration(text: str, profile: NarrationProfile) -> str:
     if not narration:
         raise UserFacingError("The AI returned an empty narration.", 502)
     return narration
+
+
+def _create_ai_study_kit(text: str) -> dict[str, Any]:
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise UserFacingError("AI study kit is not configured.", 503)
+    payload = {
+        "model": os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+        "response_format": {"type": "json_object"},
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You are a careful study coach. Based only on the supplied lecture text, create a useful study kit. "
+                    "Return valid JSON with exactly these keys: summary (string), quiz (array of 3 objects with question, "
+                    "answer, and explanation strings), flashcards (array of 3 objects with front and back strings), "
+                    "and next_steps (array of 3 short strings). Never invent facts."
+                ),
+            },
+            {"role": "user", "content": text},
+        ],
+        "temperature": 0.25,
+        "max_tokens": 1600,
+    }
+    result = _call_openai_json(payload)
+    return _normalise_study_kit(result)
+
+
+def _create_ai_answer(text: str, question: str) -> str:
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise UserFacingError("AI tutor is not configured.", 503)
+    payload = {
+        "model": os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You are a patient lecture tutor. Answer the student's question using only the supplied lesson source. "
+                    "If the source does not contain enough information, say so clearly and suggest what to review. "
+                    "Use plain language, explain formulas in words, and keep the answer under 180 words."
+                ),
+            },
+            {"role": "user", "content": f"LESSON SOURCE:\n{text}\n\nSTUDENT QUESTION:\n{question}"},
+        ],
+        "temperature": 0.25,
+        "max_tokens": 500,
+    }
+    answer = _call_openai(payload)
+    if not answer:
+        raise UserFacingError("The AI tutor returned an empty answer.", 502)
+    return answer
+
+
+def _call_openai_json(payload: dict[str, Any]) -> dict[str, Any]:
+    raw = _call_openai(payload)
+    try:
+        result = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise UserFacingError("The AI study coach returned invalid study data.", 502) from exc
+    if not isinstance(result, dict):
+        raise UserFacingError("The AI study coach returned an unexpected response.", 502)
+    return result
+
+
+def _normalise_study_kit(value: dict[str, Any]) -> dict[str, Any]:
+    quiz = value.get("quiz") if isinstance(value.get("quiz"), list) else []
+    flashcards = value.get("flashcards") if isinstance(value.get("flashcards"), list) else []
+    next_steps = value.get("next_steps") if isinstance(value.get("next_steps"), list) else []
+    clean_quiz = [
+        {key: str(item.get(key, "")).strip() for key in ("question", "answer", "explanation")}
+        for item in quiz[:3]
+        if isinstance(item, dict) and item.get("question")
+    ]
+    clean_cards = [
+        {key: str(item.get(key, "")).strip() for key in ("front", "back")}
+        for item in flashcards[:3]
+        if isinstance(item, dict) and item.get("front")
+    ]
+    return {
+        "summary": str(value.get("summary", "")).strip(),
+        "quiz": clean_quiz,
+        "flashcards": clean_cards,
+        "next_steps": [str(step).strip() for step in next_steps[:3] if str(step).strip()],
+    }
+
+
+def _fallback_study_kit(text: str) -> dict[str, Any]:
+    points = _derive_key_points(text)
+    cards = [{"front": point, "back": "Explain this idea in your own words, then connect it to the surrounding slide."} for point in points]
+    quiz = [
+        {
+            "question": "What is the main idea of this slide?",
+            "answer": points[0],
+            "explanation": "Start with the first key point, then add one supporting detail from the narration.",
+        }
+    ]
+    return {
+        "summary": " ".join(points),
+        "quiz": quiz,
+        "flashcards": cards,
+        "next_steps": ["Replay the narration once.", "Explain the key idea without looking at the source.", "Return later and answer the quiz aloud."],
+    }
+
+
+def _fallback_answer(text: str, question: str) -> str:
+    points = _derive_key_points(text)
+    lowered_question = question.lower()
+    matching = next((point for point in points if any(word in point.lower() for word in lowered_question.split() if len(word) > 4)), points[0])
+    return f"From this lesson, the closest answer is: {matching}. Review the narration for the surrounding explanation, then try explaining the idea in your own words."
 
 
 def _call_openai(payload: dict[str, Any]) -> str:

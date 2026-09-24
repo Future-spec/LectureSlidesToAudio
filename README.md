@@ -12,7 +12,12 @@ For a group presentation, use [VIVA_GUIDE.md](VIVA_GUIDE.md). It divides the exp
 - Offline demo with no file, API key, or Tesseract installation
 - Image and PDF input in the terminal workflow
 - Selectable PDF text extraction with scanned-page OCR fallback
-- Optional OpenAI-compatible narration and vision extraction
+- Optional OpenAI-compatible narration, vision extraction, and structured study coaching
+- AI study kit with a summary, quick quiz, flashcards, and next steps
+- Source-grounded lesson tutor for follow-up questions
+- Interactive quiz scoring and resumable browser history stored locally
+- Paragraph-level narration playback with local completion progress
+- Structured multi-slide deck map with slide-specific playback
 - Browser upload, progress steps, extracted text, narration, and playback speed control
 - Upload limit and upstream request timeout suitable for serverless deployment
 
@@ -60,11 +65,21 @@ The interactive menu is available with `python main.py`. Generated WAV and text 
 
 Demo mode works without external services. For real image OCR in the terminal app, install the Tesseract application and make sure it is on `PATH`. For AI narration or web image extraction, configure environment variables without committing secrets:
 
+Copy `.env.example` to `.env`, then replace the placeholder key:
+
+```powershell
+Copy-Item .env.example .env
+```
+
 ```powershell
 $env:OPENAI_API_KEY = "your-key"
 $env:OPENAI_MODEL = "gpt-4o-mini"
 $env:OPENAI_BASE_URL = "https://api.openai.com/v1"
 ```
+
+The Flask app loads `.env` automatically when `python-dotenv` is installed. The header shows `AI ready` when the key is active; `Offline mode` means the app is deliberately using its local fallback.
+
+The web app uses the configured OpenAI-compatible model for narration, the Study kit tab, and the lesson tutor. The study kit is returned as structured JSON and includes a short summary, three quiz prompts, flashcards, and suggested next steps. PDFs are also returned as structured slide records for the Deck map, where each slide can be played independently. The tutor is constrained to the current lesson source. Narration paragraphs can be replayed individually, and completion state is saved locally with the lesson history. If the key is missing or the provider is unavailable, the app falls back to deterministic offline narration, study coaching, and question answering so the core demo still works.
 
 ## Deploy to Vercel
 
