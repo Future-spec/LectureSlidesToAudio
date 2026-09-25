@@ -155,7 +155,6 @@ async function createLesson(useDemo = false) {
     let extracted;
     if (useDemo) {
       extracted = await requestJson("/api/demo");
-      extracted.slides = [{ number: 1, title: extracted.title, text: extracted.extracted_text }];
     } else if (file) {
       const body = new FormData();
       body.append("file", file);

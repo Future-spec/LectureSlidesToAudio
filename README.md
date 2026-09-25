@@ -61,6 +61,14 @@ python main.py --demo
 
 The interactive menu is available with `python main.py`. Generated WAV and text files are written to `output/`, which is ignored by Git.
 
+Generate the product showcase PDF with the project's virtual environment:
+
+```powershell
+.venv\Scripts\python.exe showcase\generate_showcase.py
+```
+
+The finished brief is written to `showcase/LectureLens_Showcase.pdf` and covers the learning flow, live demo story, technical architecture, accessibility value, and next product moves.
+
 ## Optional AI and OCR setup
 
 Demo mode works without external services. For real image OCR in the terminal app, install the Tesseract application and make sure it is on `PATH`. For AI narration or web image extraction, configure environment variables without committing secrets:

@@ -96,6 +96,23 @@ def health() -> Any:
 
 @app.get("/api/demo")
 def demo() -> Any:
+    slides = [
+        {
+            "number": 1,
+            "title": "The big idea",
+            "text": "Photosynthesis is how plants turn light energy into stored chemical energy.",
+        },
+        {
+            "number": 2,
+            "title": "Inputs and outputs",
+            "text": "Inputs: sunlight, carbon dioxide, and water. Outputs: glucose, where energy is stored, and oxygen.",
+        },
+        {
+            "number": 3,
+            "title": "The equation",
+            "text": "6CO2 + 6H2O -> C6H12O6 + 6O2. Six units of carbon dioxide and six units of water produce glucose and oxygen.",
+        },
+    ]
     return jsonify(
         {
             "title": "Photosynthesis",
@@ -106,7 +123,8 @@ def demo() -> Any:
                 "Carbon dioxide and water are the inputs.",
                 "Glucose stores energy and oxygen is released.",
             ],
-            "meta": {"source": "interactive demo", "pages": 1},
+            "slides": slides,
+            "meta": {"source": "interactive demo", "pages": len(slides)},
         }
     )
 
