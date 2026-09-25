@@ -69,6 +69,15 @@ Generate the product showcase PDF with the project's virtual environment:
 
 The finished brief is written to `showcase/LectureLens_Showcase.pdf` and covers the learning flow, live demo story, technical architecture, accessibility value, and next product moves.
 
+To build the minimum four-minute narrated demo video, capture the running app's lesson, deck map, and study kit states as `showcase/video_lesson.png`, `showcase/video_deck.png`, and `showcase/video_study_kit.png`, then run:
+
+```powershell
+.venv\Scripts\python.exe -m pip install -r showcase\requirements-demo.txt
+.venv\Scripts\python.exe showcase\build_demo_video.py
+```
+
+This creates `showcase/LectureLens_Demo.mp4`. The scene plan and full voiceover are in [DEMO_VIDEO_SCRIPT.md](showcase/DEMO_VIDEO_SCRIPT.md).
+
 ## Optional AI and OCR setup
 
 Demo mode works without external services. For real image OCR in the terminal app, install the Tesseract application and make sure it is on `PATH`. For AI narration or web image extraction, configure environment variables without committing secrets:
