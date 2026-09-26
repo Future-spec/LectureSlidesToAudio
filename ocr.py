@@ -3,7 +3,7 @@
 from pathlib import Path
 
 
-def extract_text(file_path: str) -> str:
+def extract_text(file_path: str, language: str = "eng") -> str:
     """Extract text from an image or PDF using local OCR tools."""
     path = Path(file_path)
     if not path.exists():
@@ -18,17 +18,17 @@ def extract_text(file_path: str) -> str:
         ) from error
 
     if path.suffix.lower() == ".pdf":
-        return _extract_pdf_text(path, pytesseract)
+        return _extract_pdf_text(path, pytesseract, language)
 
     try:
-        return pytesseract.image_to_string(Image.open(path)).strip()
+        return pytesseract.image_to_string(Image.open(path), lang=language).strip()
     except Exception as error:
         raise RuntimeError(
             "Could not read the image. Check that Tesseract OCR is installed."
         ) from error
 
 
-def _extract_pdf_text(path: Path, pytesseract) -> str:
+def _extract_pdf_text(path: Path, pytesseract, language: str = "eng") -> str:
     try:
         import fitz
     except ImportError as error:
@@ -46,7 +46,7 @@ def _extract_pdf_text(path: Path, pytesseract) -> str:
                 continue
 
             image = _render_page(page)
-            page_text = pytesseract.image_to_string(image).strip()
+            page_text = pytesseract.image_to_string(image, lang=language).strip()
             if page_text:
                 pages.append(f"Page {page_number}:\n{page_text}")
     except Exception as error:

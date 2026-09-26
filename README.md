@@ -19,6 +19,7 @@ For a group presentation, use [VIVA_GUIDE.md](VIVA_GUIDE.md). It divides the exp
 - Paragraph-level narration playback with local completion progress
 - Structured multi-slide deck map with slide-specific playback
 - Browser upload, progress steps, extracted text, narration, and playback speed control
+- English and Hindi (Devanagari) narration, study tools, browser voices, and terminal audio
 - Upload limit and upstream request timeout suitable for serverless deployment
 
 ## Project structure
@@ -59,6 +60,12 @@ Open `http://localhost:5000`. Run the demo from the terminal with:
 python main.py --demo
 ```
 
+For a Hindi lecture file, use Hindi OCR, narration, and local audio voice selection:
+
+```powershell
+python main.py --file .\lecture.jpg --language hindi
+```
+
 The interactive menu is available with `python main.py`. Generated WAV and text files are written to `output/`, which is ignored by Git.
 
 Generate the product showcase PDF with the project's virtual environment:
@@ -80,7 +87,7 @@ This creates `showcase/LectureLens_Demo.mp4`. The scene plan and full voiceover 
 
 ## Optional AI and OCR setup
 
-Demo mode works without external services. For real image OCR in the terminal app, install the Tesseract application and make sure it is on `PATH`. For AI narration or web image extraction, configure environment variables without committing secrets:
+Demo mode works without external services. For real image OCR in the terminal app, install the Tesseract application, install its `hin` language data alongside `eng`, and make sure it is on `PATH`. The web studio's Lesson language selector sends Hindi prompts to the AI, prefers `hi-IN` browser voices, and preserves Devanagari during vision extraction. For AI narration or web image extraction, configure environment variables without committing secrets:
 
 Copy `.env.example` to `.env`, then replace the placeholder key:
 

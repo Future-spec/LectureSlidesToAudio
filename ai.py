@@ -12,7 +12,7 @@ DEMO_TEXT = (
 )
 
 
-def create_narration(raw_text: str, demo: bool = False) -> str:
+def create_narration(raw_text: str, demo: bool = False, language: str = "English") -> str:
     """Return a listening-friendly narration from OCR text."""
     cleaned = " ".join(raw_text.split())
     if not cleaned:
@@ -20,12 +20,12 @@ def create_narration(raw_text: str, demo: bool = False) -> str:
 
     api_key = os.getenv("OPENAI_API_KEY")
     if not demo and api_key:
-        return _ask_ai(cleaned, api_key)
+        return _ask_ai(cleaned, api_key, language)
 
-    return _demo_narration(cleaned)
+    return _demo_narration(cleaned, language)
 
 
-def _demo_narration(text: str) -> str:
+def _demo_narration(text: str, language: str = "English") -> str:
     """A deterministic response for demonstrations without an API key."""
     if "photosynthesis" in text.lower():
         return (
@@ -41,10 +41,12 @@ def _demo_narration(text: str) -> str:
     text = text.replace(":", ". ")
     text = re.sub(r"\s*[-*]\s*", ". ", text)
     text = re.sub(r"\bvs\.?\b", "versus", text, flags=re.I)
+    if language.lower() == "hindi":
+        return "स्लाइड का सरल विवरण यह है। " + text
     return "Here is a clear explanation of the slide. " + text
 
 
-def _ask_ai(text: str, api_key: str) -> str:
+def _ask_ai(text: str, api_key: str, language: str = "English") -> str:
     base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
     model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     payload = {
@@ -56,7 +58,7 @@ def _ask_ai(text: str, api_key: str) -> str:
                     "Convert OCR text from a lecture slide into a clear narration "
                     "for a visually impaired student. Fix obvious OCR errors, "
                     "expand abbreviations, explain formulas in words, and turn "
-                    "fragments or bullets into natural sentences. Return only the narration."
+                    f"fragments or bullets into natural sentences. Return only the narration in {language}."
                 ),
             },
             {"role": "user", "content": text},
@@ -78,4 +80,4 @@ def _ask_ai(text: str, api_key: str) -> str:
         return result["choices"][0]["message"]["content"].strip()
     except Exception as error:
         print(f"AI service unavailable ({error}). Using demo narration instead.")
-        return _demo_narration(text)
+        return _demo_narration(text, language)

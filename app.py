@@ -54,6 +54,38 @@ class NarrationProfile:
     opener: str
 
 
+@dataclass(frozen=True)
+class LanguageProfile:
+    label: str
+    locale: str
+    tesseract_code: str
+    instruction: str
+    fallback_opener: str
+
+
+LANGUAGE_PROFILES = {
+    "en": LanguageProfile(
+        label="English",
+        locale="en-US",
+        tesseract_code="eng",
+        instruction="Write the complete response in clear, natural English.",
+        fallback_opener="Here is the idea in plain language.",
+    ),
+    "hi": LanguageProfile(
+        label="Hindi",
+        locale="hi-IN",
+        tesseract_code="hin+eng",
+        instruction=(
+            "Write the complete response in natural Hindi using Devanagari script. "
+            "Keep unavoidable scientific names, formulas, and standard abbreviations in their familiar form, "
+            "and explain them in Hindi. Do not translate into Hinglish unless the source itself requires it."
+        ),
+        fallback_opener="आइए इस विचार को सरल भाषा में समझते हैं।",
+    ),
+
+}
+
+
 NARRATION_PROFILES = {
     "explainer": NarrationProfile(
         label="Clear explainer",
@@ -137,12 +169,13 @@ def extract() -> Any:
         return _error("Choose a JPG, PNG, WEBP, or PDF before processing.", 400)
 
     suffix = Path(upload.filename).suffix.lower()
+    language = _language_profile(request.form.get("language"))
     try:
         if suffix == ".pdf":
             text, pages, slides = _extract_pdf(upload.read())
             source = "selectable PDF text"
         elif suffix in ALLOWED_IMAGE_EXTENSIONS:
-            text = _extract_image(upload.read(), upload.mimetype or "image/jpeg")
+            text = _extract_image(upload.read(), upload.mimetype or "image/jpeg", language)
             pages = 1
             slides = [{"number": 1, "title": _derive_title(text), "text": text}]
             source = "AI slide reading"
@@ -181,17 +214,18 @@ def narrate() -> Any:
     if len(text) > MAX_SOURCE_CHARACTERS:
         return _error("This source is too long for one narration. Use up to 24,000 characters at a time.", 413)
 
+    language = _language_profile(data.get("language"))
     mode = str(data.get("mode", "explainer")).lower()
     profile = NARRATION_PROFILES.get(mode, NARRATION_PROFILES["explainer"])
     title = _derive_title(text)
     key_points = _derive_key_points(text)
 
     try:
-        narration = _create_ai_narration(text, profile)
+        narration = _create_ai_narration(text, profile, language)
         engine = "OpenAI"
     except UserFacingError:
         # The no-key and network-error paths still provide a polished demo.
-        narration = _fallback_narration(text, profile)
+        narration = _fallback_narration(text, profile, language)
         engine = "Smart offline guide"
 
     return jsonify(
@@ -199,7 +233,7 @@ def narrate() -> Any:
             "title": title,
             "narration": narration,
             "key_points": key_points,
-            "meta": {"mode": mode, "engine": engine, "characters": len(text)},
+            "meta": {"mode": mode, "engine": engine, "characters": len(text), "language": language.label, "locale": language.locale},
         }
     )
 
@@ -217,11 +251,12 @@ def study_kit() -> Any:
     if len(text) > MAX_SOURCE_CHARACTERS:
         return _error("This source is too long for one study kit.", 413)
 
+    language = _language_profile(data.get("language"))
     try:
-        kit = _create_ai_study_kit(text)
+        kit = _create_ai_study_kit(text, language)
         engine = "OpenAI study coach"
     except UserFacingError:
-        kit = _fallback_study_kit(text)
+        kit = _fallback_study_kit(text, language)
         engine = "Offline study coach"
 
     return jsonify({"study_kit": kit, "meta": {"engine": engine}})
@@ -243,11 +278,12 @@ def ask_lesson() -> Any:
     if len(question) > 800:
         return _error("Keep your question under 800 characters.", 413)
 
+    language = _language_profile(data.get("language"))
     try:
-        answer = _create_ai_answer(text, question)
+        answer = _create_ai_answer(text, question, language)
         engine = "OpenAI lesson tutor"
     except UserFacingError:
-        answer = _fallback_answer(text, question)
+        answer = _fallback_answer(text, question, language)
         engine = "Offline lesson tutor"
     return jsonify({"answer": answer, "meta": {"engine": engine}})
 
@@ -306,7 +342,7 @@ def _extract_pdf(file_bytes: bytes) -> tuple[str, int, list[dict[str, Any]]]:
         document.close()
 
 
-def _extract_image(image_bytes: bytes, mime_type: str) -> str:
+def _extract_image(image_bytes: bytes, mime_type: str, language: LanguageProfile) -> str:
     if not image_bytes:
         raise UserFacingError("The image file is empty.", 400)
     api_key = os.getenv("OPENAI_API_KEY")
@@ -331,7 +367,8 @@ def _extract_image(image_bytes: bytes, mime_type: str) -> str:
                         "type": "text",
                         "text": (
                             "Extract every readable word from this lecture slide. Preserve headings, bullets, labels, "
-                            "equations, and important ordering. Do not explain it. Return only the transcription."
+                            "equations, and important ordering. Do not explain it. Return only the transcription. "
+                            f"The slide language is {language.label}; preserve its original script exactly."
                         ),
                     },
                     {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{encoded}"}},
@@ -344,7 +381,7 @@ def _extract_image(image_bytes: bytes, mime_type: str) -> str:
     return _call_openai(payload)
 
 
-def _create_ai_narration(text: str, profile: NarrationProfile) -> str:
+def _create_ai_narration(text: str, profile: NarrationProfile, language: LanguageProfile) -> str:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise UserFacingError("AI narration is not configured.", 503)
@@ -357,7 +394,7 @@ def _create_ai_narration(text: str, profile: NarrationProfile) -> str:
                     "You are an award-winning accessibility tutor. Convert lecture-slide text into a warm, natural "
                     "audio narration for a student who cannot see the slide. Correct obvious OCR mistakes, make "
                     "bullets flow, explain symbols and equations in spoken words, and never invent facts. "
-                    f"{profile.instruction} Use short paragraphs and return only the narration, without a title or markdown."
+                    f"{profile.instruction} {language.instruction} Use short paragraphs and return only the narration, without a title or markdown."
                 ),
             },
             {"role": "user", "content": text},
@@ -371,7 +408,7 @@ def _create_ai_narration(text: str, profile: NarrationProfile) -> str:
     return narration
 
 
-def _create_ai_study_kit(text: str) -> dict[str, Any]:
+def _create_ai_study_kit(text: str, language: LanguageProfile) -> dict[str, Any]:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise UserFacingError("AI study kit is not configured.", 503)
@@ -386,6 +423,7 @@ def _create_ai_study_kit(text: str) -> dict[str, Any]:
                     "Return valid JSON with exactly these keys: summary (string), quiz (array of 3 objects with question, "
                     "answer, and explanation strings), flashcards (array of 3 objects with front and back strings), "
                     "and next_steps (array of 3 short strings). Never invent facts."
+                    f" {language.instruction}"
                 ),
             },
             {"role": "user", "content": text},
@@ -397,7 +435,7 @@ def _create_ai_study_kit(text: str) -> dict[str, Any]:
     return _normalise_study_kit(result)
 
 
-def _create_ai_answer(text: str, question: str) -> str:
+def _create_ai_answer(text: str, question: str, language: LanguageProfile) -> str:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise UserFacingError("AI tutor is not configured.", 503)
@@ -409,7 +447,7 @@ def _create_ai_answer(text: str, question: str) -> str:
                 "content": (
                     "You are a patient lecture tutor. Answer the student's question using only the supplied lesson source. "
                     "If the source does not contain enough information, say so clearly and suggest what to review. "
-                    "Use plain language, explain formulas in words, and keep the answer under 180 words."
+                    f"Use plain language, explain formulas in words, and keep the answer under 180 words. {language.instruction}"
                 ),
             },
             {"role": "user", "content": f"LESSON SOURCE:\n{text}\n\nSTUDENT QUESTION:\n{question}"},
@@ -456,28 +494,46 @@ def _normalise_study_kit(value: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _fallback_study_kit(text: str) -> dict[str, Any]:
+def _fallback_study_kit(text: str, language: LanguageProfile) -> dict[str, Any]:
     points = _derive_key_points(text)
-    cards = [{"front": point, "back": "Explain this idea in your own words, then connect it to the surrounding slide."} for point in points]
+    card_back = (
+        "इस विचार को अपने शब्दों में समझाइए और इसे स्लाइड की बाकी जानकारी से जोड़िए।"
+        if language is LANGUAGE_PROFILES["hi"]
+        else "Explain this idea in your own words, then connect it to the surrounding slide."
+    )
+    cards = [{"front": point, "back": card_back} for point in points]
+    question = "इस स्लाइड का मुख्य विचार क्या है?" if language is LANGUAGE_PROFILES["hi"] else "What is the main idea of this slide?"
+    explanation = (
+        "पहले मुख्य बिंदु से शुरू करें और फिर narration से एक सहायक विवरण जोड़ें।"
+        if language is LANGUAGE_PROFILES["hi"]
+        else "Start with the first key point, then add one supporting detail from the narration."
+    )
     quiz = [
         {
-            "question": "What is the main idea of this slide?",
+            "question": question,
             "answer": points[0],
-            "explanation": "Start with the first key point, then add one supporting detail from the narration.",
+            "explanation": explanation,
         }
     ]
+    next_steps = (
+        ["नरेशन को एक बार फिर सुनें।", "स्रोत देखे बिना मुख्य विचार अपने शब्दों में समझाएँ।", "बाद में लौटकर प्रश्न का उत्तर ज़ोर से दें।"]
+        if language is LANGUAGE_PROFILES["hi"]
+        else ["Replay the narration once.", "Explain the key idea without looking at the source.", "Return later and answer the quiz aloud."]
+    )
     return {
         "summary": " ".join(points),
         "quiz": quiz,
         "flashcards": cards,
-        "next_steps": ["Replay the narration once.", "Explain the key idea without looking at the source.", "Return later and answer the quiz aloud."],
+        "next_steps": next_steps,
     }
 
 
-def _fallback_answer(text: str, question: str) -> str:
+def _fallback_answer(text: str, question: str, language: LanguageProfile) -> str:
     points = _derive_key_points(text)
     lowered_question = question.lower()
     matching = next((point for point in points if any(word in point.lower() for word in lowered_question.split() if len(word) > 4)), points[0])
+    if language is LANGUAGE_PROFILES["hi"]:
+        return f"इस पाठ के आधार पर सबसे निकटतम उत्तर है: {matching}। आसपास की व्याख्या के लिए narration दोबारा सुनें और फिर इस विचार को अपने शब्दों में समझाने का प्रयास करें।"
     return f"From this lesson, the closest answer is: {matching}. Review the narration for the surrounding explanation, then try explaining the idea in your own words."
 
 
@@ -536,7 +592,7 @@ def _derive_key_points(text: str) -> list[str]:
     return candidates or ["Listen to the narration for the main idea."]
 
 
-def _fallback_narration(text: str, profile: NarrationProfile) -> str:
+def _fallback_narration(text: str, profile: NarrationProfile, language: LanguageProfile) -> str:
     title = _derive_title(text)
     points = _derive_key_points(text)
     spoken_points = " ".join(f"{index + 1}. {point}." for index, point in enumerate(points))
@@ -547,12 +603,24 @@ def _fallback_narration(text: str, profile: NarrationProfile) -> str:
     context = " ".join(equation_text.split())
     if len(context) > 620:
         context = context[:617].rsplit(" ", 1)[0] + "."
+    if language is LANGUAGE_PROFILES["hi"]:
+        return (
+            f"{language.fallback_opener} यह स्लाइड {title} के बारे में है। "
+            f"इसमें याद रखने योग्य {len(points)} मुख्य बातें हैं। {spoken_points} "
+            f"स्लाइड के शब्दों में: {context} "
+            "जब भी दोहराने की जरूरत हो, इन मुख्य बातों को फिर से सुनें।"
+        )
     return (
         f"{profile.opener} This slide is about {title}. "
         f"There are {len(points)} ideas worth holding onto. {spoken_points} "
         f"In the slide's own words: {context} "
         "Pause here and replay the key points whenever you need a quick refresher."
     )
+
+
+def _language_profile(value: Any) -> LanguageProfile:
+    language = str(value or "en").lower().strip()
+    return LANGUAGE_PROFILES.get(language, LANGUAGE_PROFILES["en"])
 
 
 if __name__ == "__main__":

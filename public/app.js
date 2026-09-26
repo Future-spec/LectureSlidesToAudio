@@ -35,6 +35,7 @@ const ui = {
   restart: $("restartBtn"),
   stop: $("stopBtn"),
   voice: $("voiceSelect"),
+  language: $("languageSelect"),
   speed: $("speedRange"),
   speedValue: $("speedValue"),
   progress: $("timelineProgress"),
@@ -66,6 +67,7 @@ const ui = {
 let file = null;
 let lesson = null;
 let mode = "explainer";
+let language = "en";
 let utterance = null;
 let timer = null;
 let quizState = { answered: [], correct: 0 };
@@ -158,6 +160,7 @@ async function createLesson(useDemo = false) {
     } else if (file) {
       const body = new FormData();
       body.append("file", file);
+      body.append("language", language);
       extracted = await requestJson("/api/extract", { method: "POST", body });
     } else if (ui.source.value.trim()) {
       extracted = { extracted_text: ui.source.value.trim(), slides: [{ number: 1, title: "Pasted lesson", text: ui.source.value.trim() }], meta: { source: "pasted text", pages: 1 } };
@@ -169,14 +172,14 @@ async function createLesson(useDemo = false) {
     const result = useDemo ? extracted : await requestJson("/api/narrate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: extracted.extracted_text, mode }),
+      body: JSON.stringify({ text: extracted.extracted_text, mode, language }),
     });
     lesson = { ...result, extracted_text: extracted.extracted_text, slides: extracted.slides || [{ number: 1, title: result.title, text: extracted.extracted_text }], meta: result.meta || extracted.meta };
     if (!useDemo) {
       const kitResult = await requestJson("/api/study-kit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: extracted.extracted_text }),
+        body: JSON.stringify({ text: extracted.extracted_text, language }),
       });
       lesson.study_kit = kitResult.study_kit;
       lesson.study_kit_engine = kitResult.meta?.engine;
@@ -333,7 +336,7 @@ async function askTutor(event) {
   ui.tutorAnswer.classList.remove("hidden");
   ui.tutorAnswer.textContent = "The tutor is reading this lesson...";
   try {
-    const result = await requestJson("/api/ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: lesson.extracted_text, question }) });
+    const result = await requestJson("/api/ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: lesson.extracted_text, question, language }) });
     ui.tutorAnswer.textContent = `${result.answer} (${result.meta?.engine || "lesson tutor"})`;
   } catch (error) {
     ui.tutorAnswer.textContent = error.message;
@@ -362,6 +365,7 @@ function speak(text = lesson?.narration) {
     persistWorkspace();
   }
   utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = language === "hi" ? "hi-IN" : "en-US";
   utterance.rate = Number(ui.speed.value);
   utterance.voice = window.speechSynthesis.getVoices().find((voiceOption) => voiceOption.name === ui.voice.value) || null;
   utterance.onstart = () => {
@@ -398,6 +402,7 @@ $("clearTextBtn").addEventListener("click", () => { ui.source.value = ""; update
 $("uploadTab").addEventListener("click", () => { $("uploadPanel").classList.remove("hidden"); $("pastePanel").classList.add("hidden"); $("uploadTab").classList.add("active"); $("pasteTab").classList.remove("active"); });
 $("pasteTab").addEventListener("click", () => { $("pastePanel").classList.remove("hidden"); $("uploadPanel").classList.add("hidden"); $("pasteTab").classList.add("active"); $("uploadTab").classList.remove("active"); });
 document.querySelectorAll(".mode-option").forEach((button) => button.addEventListener("click", () => { mode = button.dataset.mode; document.querySelectorAll(".mode-option").forEach((option) => option.classList.toggle("selected", option === button)); }));
+ui.language.addEventListener("change", () => { language = ui.language.value; document.documentElement.lang = language === "hi" ? "hi" : "en"; loadVoices(); });
 document.querySelectorAll(".content-tab").forEach((button) => button.addEventListener("click", () => { document.querySelectorAll(".content-tab").forEach((tab) => tab.classList.toggle("active", tab === button)); document.querySelectorAll(".content-view").forEach((view) => view.classList.toggle("hidden", view.id !== `${button.dataset.view}View`)); }));
 ui.quizList.addEventListener("click", (event) => { const button = event.target.closest(".check-answer"); if (button) checkQuizAnswer(button.closest(".quiz-item")); });
 ui.tutorForm.addEventListener("submit", askTutor);
@@ -420,7 +425,11 @@ ui.download.addEventListener("click", () => { const content = `${lesson.title}\n
 ui.newLesson.addEventListener("click", () => { stopSpeech(); ui.lesson.classList.add("hidden"); $("studio").scrollIntoView({ behavior: "smooth" }); });
 
 function showToast(message) { ui.toast.textContent = message; ui.toast.classList.remove("hidden"); setTimeout(() => ui.toast.classList.add("hidden"), 2200); }
-function loadVoices() { const voices = window.speechSynthesis.getVoices().filter((voiceOption) => voiceOption.lang.startsWith("en")); ui.voice.innerHTML = voices.map((voiceOption) => `<option>${escapeHtml(voiceOption.name)}</option>`).join("") || "<option>Default device voice</option>"; }
+function loadVoices() {
+  const prefix = language === "hi" ? "hi" : "en";
+  const voices = window.speechSynthesis.getVoices().filter((voiceOption) => voiceOption.lang.toLowerCase().startsWith(prefix));
+  ui.voice.innerHTML = voices.map((voiceOption) => `<option>${escapeHtml(voiceOption.name)}</option>`).join("") || `<option>${language === "hi" ? "Default Hindi device voice" : "Default device voice"}</option>`;
+}
 
 checkHealth();
 updateForm();

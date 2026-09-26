@@ -18,17 +18,18 @@ def print_header():
     print("=" * 44)
 
 
-def process_slide(file_path: str, demo: bool = False):
+def process_slide(file_path: str, demo: bool = False, language: str = "eng"):
     print("\n[1] Reading slide...")
     if demo:
         print("[2] Demo OCR text loaded (no file or Tesseract needed).")
         raw_text = DEMO_TEXT
     else:
         print("[2] Extracting text with OCR...")
-        raw_text = extract_text(file_path)
+        raw_text = extract_text(file_path, language=language)
 
     print("[3] AI is simplifying and structuring the content...")
-    narration = create_narration(raw_text, demo=demo)
+    narration_language = "Hindi" if language.startswith("hin") else "English"
+    narration = create_narration(raw_text, demo=demo, language=narration_language)
     print("[4] Generating narration...")
     print("[5] Creating audio...")
 
@@ -38,7 +39,7 @@ def process_slide(file_path: str, demo: bool = False):
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     narration_path.write_text(narration, encoding="utf-8")
     try:
-        save_audio(narration, str(audio_path))
+        save_audio(narration, str(audio_path), language="hi-IN" if language.startswith("hin") else "en-US")
         audio_message = str(audio_path)
     except Exception as error:
         audio_message = f"Audio unavailable: {error}"
@@ -70,6 +71,7 @@ def parse_arguments():
     )
     parser.add_argument("--demo", action="store_true", help="run the offline demonstration")
     parser.add_argument("--file", help="process an image or PDF without opening the menu")
+    parser.add_argument("--language", choices=("english", "hindi"), default="english", help="language for OCR, narration, and audio")
     parser.add_argument("--list", action="store_true", help="list previous generated audio")
     return parser.parse_args()
 
@@ -78,10 +80,10 @@ def main():
     arguments = parse_arguments()
     try:
         if arguments.demo:
-            process_slide("demo", demo=True)
+            process_slide("demo", demo=True, language="hin+eng" if arguments.language == "hindi" else "eng")
             return
         if arguments.file:
-            process_slide(arguments.file)
+            process_slide(arguments.file, language="hin+eng" if arguments.language == "hindi" else "eng")
             return
         if arguments.list:
             show_previous_results()
